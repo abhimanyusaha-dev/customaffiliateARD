@@ -1,0 +1,65 @@
+.banner-top-blueinfo-sec { position: absolute; z-index: 1;  background: rgb(11 112 137 / 80%); width: 100%; top: 100px; padding-left: 50px; padding-right: 50px; padding-top: 40px; padding-bottom: 40px;  z-index: 2;}
+.banner-top-blueinfo-sec > .row-flex { max-width: 100%; display: flex; justify-content: space-between; align-items: center; }
+.banner-top-blueinfo-sec .blueinfo-text-col { display: flex; align-items: center; }
+.banner-top-blueinfo-sec .blueinfo-text-col .info-auth-img img { width: 86px; height: 86px; object-fit: cover; border-radius: 50%; margin-right: 25px; }
+.banner-top-blueinfo-sec .blueinfo-text-col .info-textbox * { color: #FFF; margin-bottom: 0; font-size: 25px; line-height: 1.4; }
+.blueinfo-btn-col .button { background-color: #FF904D !important; border-radius: 99px; padding: 5px 30px 5px 30px;}
+
+
+.custom-aff-heading { padding: 15px; }
+.custom-aff-heading a { display: inline-block; padding: 10px 20px; background: #2271b1; color: #fff; text-decoration: none; border-radius: 4px; }
+
+.dataTables_wrapper { padding: 20px; }
+.dataTables_wrapper .dataTables_length select { width: 70px; }
+table.dataTable { padding: 15px 0; }
+table.dataTable thead tr th { background: #fff; text-align: left; }
+
+
+
+form.add-ca-form { display: flex; flex-wrap: wrap; padding: 20px 0; }
+form.add-ca-form p { width: 33.333%; padding: 0 20px; box-sizing: border-box; }
+form.add-ca-form input[type="text"], form.add-ca-form select, form.add-ca-form input[type="file"] { width: 100%; padding: 8px; box-sizing: border-box; height: 40px; margin-top: 5px; max-width: 100%; border: 1px solid #ccc; background-color: #fff; }
+form.add-ca-form textarea { width: 100%; padding: 8px; box-sizing: border-box; height: 140px; margin-top: 5px; max-width: 100%; border: 1px solid #ccc; background-color: #fff;  resize: none;}
+form.add-ca-form p.custom-style-box { width: 100%; }
+
+form.add-ca-form .add-btn { margin-top: 38px; }
+input[type="submit"] { display: inline-block; border: 0; padding: 10px 20px; background: #2271b1; color: #fff; text-decoration: none; border-radius: 4px; cursor: pointer; margin-left: 20px;}
+
+.product-rates { padding: 0 20px; }
+.product-rates table.form-table tr th, .product-rates table.form-table tr td { padding: 10px !important; /* width: 100%; */ }
+a.custom_aff_cat_remove_rate, a.custom_aff_remove_rate { background: red !important; color: #fff; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; }
+
+form.add-ca-form p img#preview_image { width: 100px; height: 100px; object-fit: cover; border: 3px solid #fff; box-shadow: 0 0 3px rgba(0,0,0,0.2); }
+
+.ca-file-export form { display:flex; align-items:center }
+.ca-file-export { background:#FFF; text-align:center; padding:40px; max-width:600px; margin:auto; border:1px solid #ccc}
+.ca-file-export form { display:flex; align-items:center; justify-content:center }
+.ca-file-export { align-items:center;}
+.ca-sample-file button { display: inline-block; border: 0;padding: 10px 20px; background: #2271b1; color: #fff; text-decoration: none; border-radius: 4px; cursor: pointer; }
+.ca-file-export .form-wrap { margin-right:30px }
+.ca-file-export input[type="submit"] {  margin-left:0px  }
+.ca-file-export input[type="file"] { max-width:200px  }
+.ca-sample-file { margin-top:20px}
+.custom-filter label{ font-weight: 500; color: #1d2327; }
+.custom-filter {    display: flex; margin-left: 17px; }
+.custom-aff-traffic-filter {  margin-left: 17px; }
+
+.wp-admin form.add-ca-form { display: block; flex-wrap: wrap; }
+.wp-admin .funnel-details { display: flex; flex-wrap: wrap; margin-bottom: 25px;}
+.wp-admin .funnel-details h3 { width: 100%; padding: 0 10px;}
+.wp-admin form.add-ca-form p{ width: 33.333%; padding: 0 10px; margin-bottom:10px;}
+.wp-admin form.add-ca-form p label { margin-bottom: 0;}
+
+.wp-admin .promotion h3 { width: 100%; padding: 0 10px 12px;} 
+.wp-admin .promotion { display: flex; flex-wrap: wrap; margin-bottom: 25px;}
+
+.wp-admin .funnel_offer_detail{ display: flex; flex-wrap: wrap;}
+.wp-admin .funnel_offer_detail h3 { width: 100%; padding: 0 10px 12px;} 
+.wp-admin .funnel_offer_detail h6 { width: 100%; padding: 0 10px 12px;} 
+
+.wp-admin p.custom-style-box { width: 100% !important; } 
+.wp-admin form.add-ca-form .funnel_offer_detail p:nth-child(6){width: 100% !important; }
+
+.wp-admin label { display: inline-block; margin-bottom: 3px;}
+
+
