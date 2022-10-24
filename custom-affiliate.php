@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Custom Affiliate Plugin
  * Version: 1.0.6
- * Description: This is a CustomAffiliate list plugin, With Per Product Shipping for Affiliates !
+ * Description: This is a CustomAffiliate list plugin, With Per Product Shipping,Product Bundle Offer for Affiliates !
  * Author: Idealliving
  * Author URI: http://idealliving.com/
  */

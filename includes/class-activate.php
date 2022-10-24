@@ -1,4 +1,4 @@
-<?php 
+<?php
 if ( ! class_exists( 'CustomAffiliate_Activate' ) ) {
 	class CustomAffiliate_Activate {
         /**
@@ -38,6 +38,10 @@ if ( ! class_exists( 'CustomAffiliate_Activate' ) ) {
                 cust_aff_button_link varchar(256) NULL,
                 traffic_source varchar(256) NULL,
                 cust_aff_style Text NULL,
+                land_page_url Text NULL,
+                show_home ENUM(0,1) NOT NULL DEFAULT 1,
+                only_default_var ENUM(0,1) NOT NULL DEFAULT 0,
+                cust_aff_product_bundles Text NOT NULL,
                 PRIMARY KEY (ca_id)
             ) $charset_collate;";
 
@@ -52,6 +56,18 @@ if ( ! class_exists( 'CustomAffiliate_Activate' ) ) {
                 $front_page_id = get_option('page_on_front');
                 update_option('generic_page_id',$front_page_id);
             }
+            if(get_option('affiliate_current_site',true))
+            {
+                if(!str_contains(get_option('affiliate_current_site'),"_"))
+                {                
+                add_option('affiliate_current_site','AQT_LIVE');
+                }
+            }
+            else            
+            {
+                add_option('affiliate_current_site','AQT_LIVE');
+            }
+            
             
         }
 		

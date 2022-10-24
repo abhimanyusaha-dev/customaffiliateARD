@@ -1,4 +1,5 @@
 <?php
+/* AIRD Live */
 class Affiliate_Type_Admin {
 	public function load_affiliate_type_hook(){
 		
@@ -69,7 +70,8 @@ class Affiliate_Type_Admin {
 		
 	}
 	
- 	public function wdo_affiliate_type_product_data_fields() {
+
+	public function wdo_affiliate_type_product_data_fields() {
     	global $post;
     	$generic_affiliate ="";
     	$generic_affiliate_rate ="";
@@ -79,6 +81,7 @@ class Affiliate_Type_Admin {
     		$generic_affiliate = get_post_meta($post->ID,'generic-affiliate',true);
     		$generic_affiliate_rate = get_post_meta($post->ID,'generic-affiliate-rate',true);
     		$generic_affiliate_show = get_post_meta($post->ID,'generic-affiliate-show',true);
+    		$affiliate_backend_show = get_post_meta($post->ID,'affiliate-backend-show',true);
     	}
     	?>	
     		<div class="options_group">
@@ -104,6 +107,7 @@ class Affiliate_Type_Admin {
 				      'label' => __( 'Generic Affiliate', 'woocommerce' ),
 				      'placeholder' => '',
 				      'description' => __( 'Enter the value here.', 'woocommerce' ),
+					  'custom_attributes' => array( 'step' => 'any'),
 				      'type' => 'number',
 				      'value'=>$generic_affiliate,
 				    )
@@ -126,6 +130,21 @@ class Affiliate_Type_Admin {
 				);
 				?>
 			</div>
+			<div class="options_group">
+		    	<?php
+				$optionsStatusnew = array(""=>"Select the status","1"=>"Yes","0"=>"No");
+				woocommerce_wp_select(
+				    array(
+				      'id' => 'affiliate_backend_show',
+				      'label' => __( 'Show(Affiliates Product/s)', 'woocommerce' ),
+				      'placeholder' => '',
+				      'description' => __( 'Select the status', 'woocommerce' ),
+				      'options' =>  $optionsStatusnew,
+				      'value'=>$affiliate_backend_show,
+				    )
+				);
+				?>
+			</div>
 			
 		<?php
 
@@ -140,6 +159,9 @@ class Affiliate_Type_Admin {
         if(isset($_POST['generic_affiliate_show'])){
         	update_post_meta($post_id,'generic-affiliate-show', $_POST['generic_affiliate_show'] );
         }
+        if(isset($_POST['affiliate_backend_show'])){
+        	update_post_meta($post_id,'affiliate-backend-show', $_POST['affiliate_backend_show'] );
+        }
         
     }
 	public function custom_price1($price, $product){
@@ -149,6 +171,8 @@ class Affiliate_Type_Admin {
 	}
 	public function custom_price($price, $product){
 		global $wpdb;
+if(get_option('affiliate_current_site')=="AIRD_LIVE"):
+	/* AIRD Live Code Start */
 		// Fix Shopping cart price 2022-07-21
 		if ( !empty($product->get_id()) /*&& !empty(wc_get_product($product->get_id()))*/ ) {
 
@@ -256,9 +280,451 @@ class Affiliate_Type_Admin {
 	        }
 		}
 		return $price; // X3 for testing
+		/* AIRD Live Code END */
+	endif;
+	if(get_option('affiliate_current_site')=="AIRD_STAG"):
+		/* AIRD Stag Code Start */
+		
+		// Fix Shopping cart price 2022-07-21
+		if ( !empty($product->get_id()) /*&& !empty(wc_get_product($product->get_id()))*/ ) {
+
+			$def_product = wc_get_product( $product->get_id()  );
+
+			$raw_data = $def_product->get_data();
+
+			$prod_regular_price = 0;
+			$prod_sale_price = 0;
+			$prod_price = 0;
+			$prod_min_price = 0;
+
+			if ( !empty($raw_data['regular_price']) ) {
+				$prod_regular_price = (float)$raw_data['regular_price'];
+				if ( $prod_regular_price > 0 && ( $prod_regular_price < $prod_min_price || $prod_min_price ==0 ) ) 
+					$prod_min_price = $prod_regular_price;
+			}
+			if ( !empty($raw_data['sale_price']) ) {
+				$prod_sale_price = (float)$raw_data['sale_price'];
+				if ( $prod_sale_price > 0 && ( $prod_sale_price < $prod_min_price || $prod_min_price ==0 ) ) 
+					$prod_min_price = $prod_sale_price;
+			}
+			if ( !empty($raw_data['price']) ) {
+				$prod_price = (float)$raw_data['price'];
+				if ( $prod_price > 0 && ( $prod_price < $prod_min_price || $prod_min_price ==0 ) ) 
+					$prod_min_price = $prod_price;
+			}
+
+			if ( $price < $prod_min_price ) {
+				return $price;
+			}
+		}
+		$p_id =$product->get_id();
+		$slug = "";
+		if($product->get_parent_id()>0){
+			$p_id = $product->get_parent_id();
+		}
+		$main_affiliates = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}custom_affiliate where affiliate_type='main' and status='active'" );
+        if($main_affiliates){
+            $slug =  $main_affiliates[0]->custom_slug;
+        }
+
+		wc_delete_product_transients($product->get_id());
+		if((isset($_COOKIE['custom_affiliate_slug']) && ($_COOKIE['custom_affiliate_slug'])) || (isset($_GET['c']) && ($_GET['c'])) || ($slug) ){
+	        
+	        if(isset($_COOKIE['custom_affiliate_slug']) && ($_COOKIE['custom_affiliate_slug'])){
+				 $slug = $_COOKIE['custom_affiliate_slug'];
+			}
+	        if(isset($_GET['c']) && ($_GET['c'])){
+	            $slug = $_GET['c'];
+	        }
+        	$all_affiliates = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}custom_affiliate where custom_slug='$slug'");
+
+			if($all_affiliates){
+	            $affiliate_type = $all_affiliates[0]->affiliate_type;
+	            if($affiliate_type=='generic_affiliate'){
+	            	$generic_affiliate = get_post_meta($p_id,'generic-affiliate',true);
+	            	$generic_affiliate_rate = get_post_meta($p_id,'generic-affiliate-rate',true);
+	            	if($generic_affiliate){
+	            		if($generic_affiliate_rate=="percentage"){
+	            			$new_price=(float)$price-((float)$price*$generic_affiliate)/100;
+	            			return round($new_price,2);
+	            		}else{
+	            			$new_price=(float)$price-(float)$generic_affiliate;
+	            			return round($new_price,2);
+	            		}
+	            		
+	            	}
+	            }else{
+	            	if($all_affiliates[0]->cust_aff_product_cat){
+	            		$cust_aff_product_cat = unserialize($all_affiliates[0]->cust_aff_product_cat);
+	            		foreach ($cust_aff_product_cat as $key => $value){
+	            			if (is_object_in_term($p_id,'product_cat',$value['cat_id'])){
+	            				if($value['discount']){
+		            				if($value['rate']=="percentage"){
+				            			$new_price=(float)$price-((float)$price*$value['discount'])/100;
+				            			return round($new_price,2);
+				            		}else{
+				            			$new_price=(float)$price-(float)$value['discount'];
+				            			return round($new_price,2);
+				            		}
+				            	}
+	            			}
+	            		}
+	            	}
+
+	            	if($all_affiliates[0]->cust_aff_product){
+	            		$cust_aff_product = unserialize($all_affiliates[0]->cust_aff_product);
+	            		foreach ($cust_aff_product as $key => $value){
+	            			if($p_id==$value['product_id']){
+	            				if($value['discount']){
+		            				if($value['rate']=="percentage"){
+				            			$new_price=(float)$price-((float)$price*$value['discount'])/100;
+				            			return round($new_price,2);
+				            		}else{
+				            			$new_price=(float)$price-(float)$value['discount'];
+				            			return round($new_price,2);
+				            		}
+				            	}
+	            			}
+	            		}
+	            		
+	            	}	
+	            }
+	        }
+		}
+		return $price; // X3 for testing
+		/* AIRD Stag Code END */
+	endif;
+	if(get_option('affiliate_current_site')=="AQT_STAG"):
+		/* AQT Stag Code Start */
+		
+		// Fix Shopping cart price 2022-07-21
+		if ( !empty($product->get_id()) /*&& !empty(wc_get_product($product->get_id()))*/ ) {
+
+			$def_product = wc_get_product( $product->get_id()  );
+
+			$raw_data = $def_product->get_data();
+
+			$prod_regular_price = 0;
+			$prod_sale_price = 0;
+			$prod_price = 0;
+			$prod_min_price = 0;
+
+			if ( !empty($raw_data['regular_price']) ) {
+				$prod_regular_price = (float)$raw_data['regular_price'];
+				if ( $prod_regular_price > 0 && ( $prod_regular_price < $prod_min_price || $prod_min_price ==0 ) ) 
+					$prod_min_price = $prod_regular_price;
+			}
+			if ( !empty($raw_data['sale_price']) ) {
+				$prod_sale_price = (float)$raw_data['sale_price'];
+				if ( $prod_sale_price > 0 && ( $prod_sale_price < $prod_min_price || $prod_min_price ==0 ) ) 
+					$prod_min_price = $prod_sale_price;
+			}
+			if ( !empty($raw_data['price']) ) {
+				$prod_price = (float)$raw_data['price'];
+				if ( $prod_price > 0 && ( $prod_price < $prod_min_price || $prod_min_price ==0 ) ) 
+					$prod_min_price = $prod_price;
+			}
+
+			if ( $price < $prod_min_price ) {
+				return $price;
+			}
+		}
+		$p_id =$product->get_id();
+		$slug = "";
+		if($product->get_parent_id()>0){
+			$p_id = $product->get_parent_id();
+		}
+		$main_affiliates = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}custom_affiliate where affiliate_type='main' and status='active'" );
+        if($main_affiliates){
+            $slug =  $main_affiliates[0]->custom_slug;
+        }
+
+		wc_delete_product_transients($product->get_id());
+		if((isset($_COOKIE['custom_affiliate_slug']) && ($_COOKIE['custom_affiliate_slug'])) || (isset($_GET['c']) && ($_GET['c'])) || ($slug) ){
+	        
+	        if(isset($_COOKIE['custom_affiliate_slug']) && ($_COOKIE['custom_affiliate_slug'])){
+				 $slug = $_COOKIE['custom_affiliate_slug'];
+			}
+	        if(isset($_GET['c']) && ($_GET['c'])){
+	            $slug = $_GET['c'];
+	        }
+        	$all_affiliates = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}custom_affiliate where custom_slug='$slug'");
+
+			if($all_affiliates){
+	            $affiliate_type = $all_affiliates[0]->affiliate_type;
+	            if($affiliate_type=='generic_affiliate'){
+	            	$generic_affiliate = get_post_meta($p_id,'generic-affiliate',true);
+	            	$generic_affiliate_rate = get_post_meta($p_id,'generic-affiliate-rate',true);
+	            	if($generic_affiliate){
+	            		if($generic_affiliate_rate=="percentage"){
+	            			$new_price=(float)$price-((float)$price*$generic_affiliate)/100;
+	            			return round($new_price,2);
+	            		}else{
+	            			$new_price=(float)$price-(float)$generic_affiliate;
+	            			return round($new_price,2);
+	            		}
+	            		
+	            	}
+	            }else{
+	            	if($all_affiliates[0]->cust_aff_product_cat){
+	            		$cust_aff_product_cat = unserialize($all_affiliates[0]->cust_aff_product_cat);
+	            		foreach ($cust_aff_product_cat as $key => $value){
+	            			if (is_object_in_term($p_id,'product_cat',$value['cat_id'])){
+	            				if($value['discount']){
+		            				if($value['rate']=="percentage"){
+				            			$new_price=(float)$price-((float)$price*$value['discount'])/100;
+				            			return round($new_price,2);
+				            		}else{
+				            			$new_price=(float)$price-(float)$value['discount'];
+				            			return round($new_price,2);
+				            		}
+				            	}
+	            			}
+	            		}
+	            	}
+
+	            	if($all_affiliates[0]->cust_aff_product){
+	            		$cust_aff_product = unserialize($all_affiliates[0]->cust_aff_product);
+	            		foreach ($cust_aff_product as $key => $value){
+	            			if($p_id==$value['product_id']){
+	            				if($value['discount']){
+		            				if($value['rate']=="percentage"){
+				            			$new_price=(float)$price-((float)$price*$value['discount'])/100;
+				            			return round($new_price,2);
+				            		}else{
+				            			$new_price=(float)$price-(float)$value['discount'];
+				            			return round($new_price,2);
+				            		}
+				            	}
+	            			}
+	            		}
+	            		
+	            	}	
+					//Combo Offer check
+	            	if($all_affiliates[0]->cust_aff_product_bundles){
+							$cart_added_item_arr=[];
+							$cart_combo_target_arr=[];
+						
+						if ( ! is_null( WC()->cart ) ) {
+							$cart_cnt=0;
+							foreach ( WC()->cart->get_cart() as $cart_item ) {
+								if ( ! empty( $cart_item) ) {
+									$product_id = $cart_item['product_id'];
+									// $variation_id = $cart_item['variation_id'];
+									$quantity = $cart_item['quantity'];
+
+									$cart_added_item_arr[$cart_cnt]['product_id']=$product_id;//!empty($variation_id)?$variation_id:
+									$cart_added_item_arr[$cart_cnt]['quantity']=$quantity;
+									$cart_cnt++;
+								}
+							}
+						}
+	            		$cust_aff_product_bundles = unserialize($all_affiliates[0]->cust_aff_product_bundles);
+						$disc_product_id_array = array_column($cust_aff_product_bundles, 'disc_product_id');
+	            		foreach ($cust_aff_product_bundles as $key => $value){
+
+							if(in_array($p_id,$disc_product_id_array)):
+								$bundle_product_ids_arr=$value['bundle_product_ids'];
+								if(in_array($p_id,$bundle_product_ids_arr)):
+									$product_cart_item_array = array_column($cart_added_item_arr, 'product_id');
+									$common_products=array_intersect($bundle_product_ids_arr,$product_cart_item_array);
+									if(empty($cart_combo_target_arr)):
+										$cart_combo_target_arr[$p_id]=1;
+									else:
+										if (!array_key_exists($p_id, $cart_combo_target_arr) ) {
+											$cart_combo_target_arr[$p_id]=1;
+										}
+									endif;
+
+									if($p_id==$value['disc_product_id']){
+
+										if($value['discount']){
+											if((count($bundle_product_ids_arr)>0 && count($common_products)>0) && ((count($bundle_product_ids_arr)==count($common_products)))):
+												// || (!in_array($p_id,$common_products) && (count($bundle_product_ids_arr)==(count($common_products)+1)))
+												$new_price=(float)$price-(float)$value['discount'];
+												return round($new_price,2);
+											endif;
+										}
+									}
+								endif;
+							endif;
+	            		}
+	            		
+	            	}
+	            }
+	        }
+		}
+		return $price; // X3 for testing
+		/* AQT Stag Code END */
+	endif;
+	if(get_option('affiliate_current_site')=="AQT_LIVE"):
+		/* AQT Live Code Start */
+		
+		// Fix Shopping cart price 2022-07-21
+		if ( !empty($product->get_id()) /*&& !empty(wc_get_product($product->get_id()))*/ ) {
+
+			$def_product = wc_get_product( $product->get_id()  );
+
+			$raw_data = $def_product->get_data();
+
+			$prod_regular_price = 0;
+			$prod_sale_price = 0;
+			$prod_price = 0;
+			$prod_min_price = 0;
+
+			if ( !empty($raw_data['regular_price']) ) {
+				$prod_regular_price = (float)$raw_data['regular_price'];
+				if ( $prod_regular_price > 0 && ( $prod_regular_price < $prod_min_price || $prod_min_price ==0 ) ) 
+					$prod_min_price = $prod_regular_price;
+			}
+			if ( !empty($raw_data['sale_price']) ) {
+				$prod_sale_price = (float)$raw_data['sale_price'];
+				if ( $prod_sale_price > 0 && ( $prod_sale_price < $prod_min_price || $prod_min_price ==0 ) ) 
+					$prod_min_price = $prod_sale_price;
+			}
+			if ( !empty($raw_data['price']) ) {
+				$prod_price = (float)$raw_data['price'];
+				if ( $prod_price > 0 && ( $prod_price < $prod_min_price || $prod_min_price ==0 ) ) 
+					$prod_min_price = $prod_price;
+			}
+
+			if ( $price < $prod_min_price ) {
+				return $price;
+			}
+		}
+		$p_id =$product->get_id();
+		$slug = "";
+		if($product->get_parent_id()>0){
+			$p_id = $product->get_parent_id();
+		}
+		$main_affiliates = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}custom_affiliate where affiliate_type='main' and status='active'" );
+        if($main_affiliates){
+            $slug =  $main_affiliates[0]->custom_slug;
+        }
+
+		wc_delete_product_transients($product->get_id());
+		if((isset($_COOKIE['custom_affiliate_slug']) && ($_COOKIE['custom_affiliate_slug'])) || (isset($_GET['c']) && ($_GET['c'])) || ($slug) ){
+	        
+	        if(isset($_COOKIE['custom_affiliate_slug']) && ($_COOKIE['custom_affiliate_slug'])){
+				 $slug = $_COOKIE['custom_affiliate_slug'];
+			}
+	        if(isset($_GET['c']) && ($_GET['c'])){
+	            $slug = $_GET['c'];
+	        }
+        	$all_affiliates = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}custom_affiliate where custom_slug='$slug'");
+
+			if($all_affiliates){
+	            $affiliate_type = $all_affiliates[0]->affiliate_type;
+	            if($affiliate_type=='generic_affiliate'){
+	            	$generic_affiliate = get_post_meta($p_id,'generic-affiliate',true);
+	            	$generic_affiliate_rate = get_post_meta($p_id,'generic-affiliate-rate',true);
+	            	if($generic_affiliate){
+	            		if($generic_affiliate_rate=="percentage"){
+	            			$new_price=(float)$price-((float)$price*$generic_affiliate)/100;
+	            			return round($new_price,2);
+	            		}else{
+	            			$new_price=(float)$price-(float)$generic_affiliate;
+	            			return round($new_price,2);
+	            		}
+	            		
+	            	}
+	            }else{
+	            	if($all_affiliates[0]->cust_aff_product_cat){
+	            		$cust_aff_product_cat = unserialize($all_affiliates[0]->cust_aff_product_cat);
+	            		foreach ($cust_aff_product_cat as $key => $value){
+	            			if (is_object_in_term($p_id,'product_cat',$value['cat_id'])){
+	            				if($value['discount']){
+		            				if($value['rate']=="percentage"){
+				            			$new_price=(float)$price-((float)$price*$value['discount'])/100;
+				            			return round($new_price,2);
+				            		}else{
+				            			$new_price=(float)$price-(float)$value['discount'];
+				            			return round($new_price,2);
+				            		}
+				            	}
+	            			}
+	            		}
+	            	}
+
+	            	if($all_affiliates[0]->cust_aff_product){
+	            		$cust_aff_product = unserialize($all_affiliates[0]->cust_aff_product);
+	            		foreach ($cust_aff_product as $key => $value){
+	            			if($p_id==$value['product_id']){
+	            				if($value['discount']){
+		            				if($value['rate']=="percentage"){
+				            			$new_price=(float)$price-((float)$price*$value['discount'])/100;
+				            			return round($new_price,2);
+				            		}else{
+				            			$new_price=(float)$price-(float)$value['discount'];
+				            			return round($new_price,2);
+				            		}
+				            	}
+	            			}
+	            		}
+	            		
+	            	}	
+					//Combo Offer check
+	            	if($all_affiliates[0]->cust_aff_product_bundles){
+							$cart_added_item_arr=[];
+							$cart_combo_target_arr=[];
+						
+						if ( ! is_null( WC()->cart ) ) {
+							$cart_cnt=0;
+							foreach ( WC()->cart->get_cart() as $cart_item ) {
+								if ( ! empty( $cart_item) ) {
+									$product_id = $cart_item['product_id'];
+									// $variation_id = $cart_item['variation_id'];
+									$quantity = $cart_item['quantity'];
+
+									$cart_added_item_arr[$cart_cnt]['product_id']=$product_id;//!empty($variation_id)?$variation_id:
+									$cart_added_item_arr[$cart_cnt]['quantity']=$quantity;
+									$cart_cnt++;
+								}
+							}
+						}
+	            		$cust_aff_product_bundles = unserialize($all_affiliates[0]->cust_aff_product_bundles);
+						$disc_product_id_array = array_column($cust_aff_product_bundles, 'disc_product_id');
+	            		foreach ($cust_aff_product_bundles as $key => $value){
+
+							if(in_array($p_id,$disc_product_id_array)):
+								$bundle_product_ids_arr=$value['bundle_product_ids'];
+								if(in_array($p_id,$bundle_product_ids_arr)):
+									$product_cart_item_array = array_column($cart_added_item_arr, 'product_id');
+									$common_products=array_intersect($bundle_product_ids_arr,$product_cart_item_array);
+									if(empty($cart_combo_target_arr)):
+										$cart_combo_target_arr[$p_id]=1;
+									else:
+										if (!array_key_exists($p_id, $cart_combo_target_arr) ) {
+											$cart_combo_target_arr[$p_id]=1;
+										}
+									endif;
+
+									if($p_id==$value['disc_product_id']){
+
+										if($value['discount']){
+											if((count($bundle_product_ids_arr)>0 && count($common_products)>0) && ((count($bundle_product_ids_arr)==count($common_products)))):
+												// || (!in_array($p_id,$common_products) && (count($bundle_product_ids_arr)==(count($common_products)+1)))
+												$new_price=(float)$price-(float)$value['discount'];
+												return round($new_price,2);
+											endif;
+										}
+									}
+								endif;
+							endif;
+	            		}
+	            		
+	            	}	
+	            }
+	        }
+		}
+		return $price; // X3 for testing
+		/* AQT Live Code END */
+	endif;
 	}
 	public function elex_display_striked_out_price_for_variable($price='', $product){
 		global $wpdb;
+	if(get_option('affiliate_current_site')=="AIRD_LIVE" || get_option('affiliate_current_site')=="AIRD_STAG"):
+	/* AIRD Live /STAG Code Start */
 		$p_id =$product->get_id();
 		$prod_show = false;
 		if($product->get_parent_id()>0){
@@ -358,6 +824,165 @@ class Affiliate_Type_Admin {
 		// Added till - on 02-08-22
 
 		return $price;
+		/* AIRD Live /STAG Code END */
+	endif;
+	
+	if(get_option('affiliate_current_site')=="AQT_STAG" || get_option('affiliate_current_site')=="AQT_LIVE"):
+		/* AQT Live /STAG Code Start */
+		
+		$p_id =$product->get_id();
+		$prod_show = false;
+		if($product->get_parent_id()>0){
+			$p_id = $product->get_parent_id();
+		}
+		//wc_delete_product_transients($product->get_id());
+		if((isset($_COOKIE['custom_affiliate_slug']) && ($_COOKIE['custom_affiliate_slug'])) || (isset($_GET['c']) && ($_GET['c'])) ){
+	        
+	        if(isset($_COOKIE['custom_affiliate_slug']) && ($_COOKIE['custom_affiliate_slug'])){
+				 $slug = $_COOKIE['custom_affiliate_slug'];
+			}
+	        if(isset($_GET['c']) && ($_GET['c'])){
+	            $slug = $_GET['c'];
+	        }
+        	$all_affiliates = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}custom_affiliate where custom_slug='$slug'");
+			if($all_affiliates){
+	            $affiliate_type = $all_affiliates[0]->affiliate_type;
+	            if($affiliate_type=='generic_affiliate'){
+	            	$generic_affiliate = get_post_meta($p_id,'generic-affiliate',true);
+	            	if($generic_affiliate){
+	            		$prod_show = true;
+	            	}
+	            }else{
+	            	if($all_affiliates[0]->cust_aff_product){
+	            		$cust_aff_product = unserialize($all_affiliates[0]->cust_aff_product);
+	            		foreach ($cust_aff_product as $key => $value){
+	            			if($value['discount']){
+			            		if($p_id==$value['product_id']){
+			            			$prod_show = true;
+			            		}
+			            	}
+		            	}
+	            	}
+	            	if($all_affiliates[0]->cust_aff_product_cat){
+	            		$cust_aff_product_cat = unserialize($all_affiliates[0]->cust_aff_product_cat);
+	            		foreach ($cust_aff_product_cat as $key => $value){
+	            			if (is_object_in_term($p_id,'product_cat',$value['cat_id'])){
+	            				if($value['discount']){
+	            					$prod_show = true;
+	            				}
+	            			}
+	            		}
+	            	}	
+					//Combo Offer check
+	            	if($all_affiliates[0]->cust_aff_product_bundles){
+							$cart_added_item_arr=[];
+							$cart_combo_target_arr=[];
+						
+						if ( ! is_null( WC()->cart ) ) {
+							$cart_cnt=0;
+							foreach ( WC()->cart->get_cart() as $cart_item ) {
+								if ( ! empty( $cart_item) ) {
+									$product_id = $cart_item['product_id'];
+									// $variation_id = $cart_item['variation_id'];
+									$quantity = $cart_item['quantity'];
+
+									$cart_added_item_arr[$cart_cnt]['product_id']=$product_id;//!empty($variation_id)?$variation_id:
+									$cart_added_item_arr[$cart_cnt]['quantity']=$quantity;
+									$cart_cnt++;
+								}
+							}
+						}
+	            		$cust_aff_product_bundles = unserialize($all_affiliates[0]->cust_aff_product_bundles);
+						$disc_product_id_array = array_column($cust_aff_product_bundles, 'disc_product_id');
+	            		foreach ($cust_aff_product_bundles as $key => $value){
+
+							if(in_array($p_id,$disc_product_id_array)):
+								$bundle_product_ids_arr=$value['bundle_product_ids'];
+								if(in_array($p_id,$bundle_product_ids_arr)):
+									$product_cart_item_array = array_column($cart_added_item_arr, 'product_id');
+									$common_products=array_intersect($bundle_product_ids_arr,$product_cart_item_array);
+									if(empty($cart_combo_target_arr)):
+										$cart_combo_target_arr[$p_id]=1;
+									else:
+										if (!array_key_exists($p_id, $cart_combo_target_arr) ) {
+											$cart_combo_target_arr[$p_id]=1;
+										}
+									endif;
+
+									if($p_id==$value['disc_product_id']){
+
+										if($value['discount']){
+											if((count($bundle_product_ids_arr)>0 && count($common_products)>0) && ((count($bundle_product_ids_arr)==count($common_products)))):
+												$suffix = $product->get_price_suffix($price);
+												return wc_format_sale_price($product->get_regular_price(), $product->get_price()).$suffix;
+											endif;
+										}
+									}
+								endif;
+							endif;
+	            		}
+	            		
+	            	}
+					
+					
+	            }
+	        }
+	    }
+		$reg_price = '';
+		if($product->is_type( 'variable' ) && $prod_show==true){
+				$variations = $product->get_children();
+				$reg_prices = array();
+				$sale_prices = array();
+				foreach ($variations as $value) {
+				$single_variation=new WC_Product_Variation($value);
+				array_push($reg_prices, $single_variation->get_regular_price());
+				array_push($sale_prices, $single_variation->get_price());
+			}
+			sort($reg_prices);
+			sort($sale_prices);
+			$min_price = $reg_prices[0];
+			$max_price = $reg_prices[count($reg_prices)-1];
+			if($min_price == $max_price){
+				$reg_price = wc_price($min_price);
+			}else{
+				$reg_price = wc_format_price_range($min_price, $max_price);
+			}
+			$min_price = $sale_prices[0];
+			$max_price = $sale_prices[count($sale_prices)-1];
+			if($min_price == $max_price){
+				$sale_price = wc_price($min_price);
+			}else{
+				$sale_price = wc_format_price_range($min_price, $max_price);
+			}
+			$suffix = $product->get_price_suffix($price);
+			return wc_format_sale_price($reg_price, $sale_price).$suffix;
+		}
+		// Added from - on 02-08-22
+		if($product->get_parent_id()>0){
+			$parent_product= wc_get_product($product->get_parent_id());
+			
+			if($parent_product->is_type( 'variable' ) && $prod_show==true){
+				
+				$single_variation=new WC_Product_Variation($product->get_id());
+				$suffix = $product->get_price_suffix($price);
+				return wc_format_sale_price($single_variation->get_regular_price(), $single_variation->get_price()).$suffix;
+			}
+
+		}
+		else 
+		{
+			if($product->is_type( 'simple' ) && $prod_show==true){			
+				
+				$suffix = $product->get_price_suffix($price);
+				return wc_format_sale_price($product->get_regular_price(), $product->get_price()).$suffix;
+			}
+			return $price;
+		}
+		// Added till - on 02-08-22
+
+		return $price;
+		/* AQT Live /STAG Code END */
+		endif;
 	}
 	
 	public function cart_price_view( $item_price, $cart_item ){
@@ -409,7 +1034,7 @@ class Affiliate_Type_Admin {
 			}
 			else
 			{
-				if(strip_tags($item_price)!=get_woocommerce_currency_symbol().$product->get_regular_price()):
+				if(strip_tags($item_price)!==strip_tags(get_woocommerce_currency_symbol().$product->get_regular_price()) && strip_tags($item_price)!==strip_tags(get_woocommerce_currency_symbol().$product->get_regular_price().".00")):
 	    			$item_price = '<del>'.get_woocommerce_currency_symbol().$product->get_regular_price().'</del> '.$item_price;
 				endif;
 			}
@@ -452,5 +1077,3 @@ class Affiliate_Type_Admin {
 	
 }
 
-
-?>

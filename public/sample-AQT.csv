@@ -1,0 +1,4 @@
+Funnel Name,Funnel Type,C=,Traffic source,Page_id,Landing Page URL,Show Home Page,Show Default Purifiers ,Custom Affiliate Text,Button text,Button link,Custom Css Style,Category Rates,Product Rates
+                Xyz,Sales,xyz,Paid Social,936,,Yes,No,,,,,15|10|flat_rate|0#81|30|percentage|10#116|20|percentage|5,7695|29|flat_rate|5#7689|10|percentage|15
+Abc,Custom,abc,Paid Search,,https://staging-aquatru.kinsta.cloud/product-category/water-purifiers/,No,Yes,Testing,Shop,https://staging-aquatru.kinsta.cloud/product-category/water-purifiers/,,15|_|flat_rate|_#81|20|percentage|0,7695|_|flat_rate|0#7689|_|flat_rate|_
+Cde,Generic,cde,Affiliates,,,,,,,,,,
